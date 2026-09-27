@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>GraphLab — พล็อตกราฟและหาความชัน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2B4A;
+    --ink-soft:#3C4A66;
+    --paper:#FFFFFF;
+    --bg:#EEF2F6;
+    --grid-line:#D6E0EA;
+    --grid-strong:#AEBFD1;
+    --axis-line:#1C2B4A;
+    --teal:#0F7C82;
+    --teal-dark:#0A5F64;
+    --coral:#E0592F;
+    --amber:#D98A1F;
+    --muted:#62728A;
+    --danger:#C6423C;
+    --danger-bg:#FBE9E8;
+    --border:#DCE4EC;
+    --focus:#0F7C82;
+    --radius-s:6px;
+    --radius-m:10px;
+  }
+  :root:not([data-theme="light"]){
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#EAEFF5;
+      --ink-soft:#C3CEDC;
+      --paper:#182234;
+      --bg:#101826;
+      --grid-line:#2A3A52;
+      --grid-strong:#42597A;
+      --axis-line:#EAEFF5;
+      --teal:#3FC1C9;
+      --teal-dark:#2E9FA6;
+      --coral:#FF8A5C;
+      --amber:#F2B94B;
+      --muted:#8FA0B8;
+      --danger:#FF8783;
+      --danger-bg:#3A2226;
+      --border:#2A3A52;
+      --focus:#3FC1C9;
+    }
+  }
+  :root[data-theme="dark"]{
+      --ink:#EAEFF5;
+      --ink-soft:#C3CEDC;
+      --paper:#182234;
+      --bg:#101826;
+      --grid-line:#2A3A52;
+      --grid-strong:#42597A;
+      --axis-line:#EAEFF5;
+      --teal:#3FC1C9;
+      --teal-dark:#2E9FA6;
+      --coral:#FF8A5C;
+      --amber:#F2B94B;
+      --muted:#8FA0B8;
+      --danger:#FF8783;
+      --danger-bg:#3A2226;
+      --border:#2A3A52;
+      --focus:#3FC1C9;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans Thai","Space Grotesk",sans-serif;
+    line-height:1.5;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .num{ font-family:"IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  .wrap{ max-width:1240px; margin:0 auto; padding:28px 20px 64px; }
+
+  header.site{
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  header.site h1{
+    font-family:"Space Grotesk",sans-serif;
+    font-weight:700; font-size:clamp(26px,4vw,34px);
+    margin:0; letter-spacing:-0.02em;
+    color:var(--ink);
+  }
+  header.site .mark{ color:var(--teal); }
+  header.site p{ margin:0; color:var(--muted); font-size:15px; }
+
+  .app-grid{
+    display:grid;
+    grid-template-columns: 1fr;
+    grid-template-areas: "graph" "input";
+    gap:20px;
+  }
+  @media (min-width: 960px){
+    .app-grid{
+      grid-template-columns: 360px 1fr;
+      grid-template-areas: "input graph";
+      align-items:start;
+    }
+  }
+  .panel-input{ grid-area:input; display:flex; flex-direction:column; gap:18px; }
+  .panel-graph{ grid-area:graph; display:flex; flex-direction:column; gap:16px; }
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:var(--radius-m);
+    padding:18px;
+  }
+  .card h2{
+    font-family:"Space Grotesk",sans-serif;
+    font-size:15px; font-weight:600; margin:0 0 12px;
+    color:var(--ink);
+  }
+  .card h2 .sub{ font-weight:400; color:var(--muted); font-size:13px; }
+
+  /* table */
+  table.data-table{ width:100%; border-collapse:collapse; }
+  table.data-table thead th{
+    text-align:left; font-size:12px; color:var(--muted); font-weight:500;
+    padding:0 6px 6px; border-bottom:1px solid var(--border);
+  }
+  table.data-table th.col-x{color:var(--ink-soft)}
+  table.data-table th.col-y{color:var(--ink-soft)}
+  table.data-table td{ padding:4px 4px; }
+  table.data-table input[type="text"]{
+    width:100%; border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:7px 8px; font-family:"IBM Plex Mono",monospace; font-size:14px;
+    background:var(--paper); color:var(--ink);
+  }
+  table.data-table input[type="text"]:focus{
+    outline:2px solid var(--focus); outline-offset:1px; border-color:var(--focus);
+  }
+  table.data-table input.invalid{ border-color:var(--danger); background:var(--danger-bg); }
+  .row-del{
+    background:none; border:none; cursor:pointer; color:var(--muted);
+    font-size:16px; padding:4px 8px; border-radius:var(--radius-s);
+    line-height:1;
+  }
+  .row-del:hover{ color:var(--danger); background:var(--danger-bg); }
+
+  .add-row-btn{
+    margin-top:10px; width:100%;
+    background:none; border:1px dashed var(--grid-strong); color:var(--ink-soft);
+    border-radius:var(--radius-s); padding:9px; cursor:pointer;
+    font-family:"Noto Sans Thai",sans-serif; font-size:14px;
+  }
+  .add-row-btn:hover{ border-color:var(--teal); color:var(--teal); }
+
+  .validation-line{ font-size:12.5px; margin-top:10px; color:var(--muted); }
+  .validation-line.err{ color:var(--danger); }
+
+  /* axis settings */
+  .axis-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; }
+  .axis-field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .axis-field input{
+    width:100%; border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:7px 8px; font-family:"IBM Plex Mono",monospace; font-size:14px;
+    background:var(--paper); color:var(--ink);
+  }
+  .axis-field input:focus{ outline:2px solid var(--focus); outline-offset:1px; border-color:var(--focus); }
+  .axis-error{
+    grid-column:1/-1; font-size:12.5px; color:var(--danger);
+    background:var(--danger-bg); border-radius:var(--radius-s); padding:8px 10px;
+    display:none;
+  }
+  .axis-error.show{ display:block; }
+
+  .reset-btn{
+    width:100%; background:none; border:1px solid var(--border); color:var(--ink-soft);
+    padding:10px; border-radius:var(--radius-s); cursor:pointer; font-size:14px;
+      </div>
+
+      <button class="reset-btn" id="resetBtn" type="button">รีเซ็ตทั้งหมด</button>
+
+    </div>
+
+    <!-- GRAPH PANEL -->
+    <div class="panel-graph">
+
+      <div class="card graph-card">
+        <div class="graph-toolbar">
+          <button class="btn btn-primary" id="startLineBtn" type="button">ลากเส้นแนวโน้ม</button>
+          <button class="btn btn-outline" id="confirmLineBtn" type="button" style="display:none;">ยืนยันเส้น</button>
+          <button class="btn btn-outline" id="clearLineBtn" type="button" style="display:none;">ล้างเส้น</button>
+          <button class="btn btn-primary" id="findSlopeBtn" type="button" style="display:none;">หาความชัน</button>
+        </div>
+        <p class="hint" id="graphHint">พล็อตข้อมูลของคุณด้านล่าง — กราฟจะอัปเดตอัตโนมัติเมื่อกรอกตาราง</p>
+
+        <div class="graph-shell">
+          <svg class="plot" id="plotSvg" viewBox="0 0 640 640" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <div class="empty-note" id="emptyNote" style="display:none;">ยังไม่มีจุดข้อมูลในช่วงแกนที่กำหนด ลองปรับค่าต่ำสุด/สูงสุดของแกน</div>
+      </div>
+
+      <div class="card calc-panel" id="calcPanel">
+        <h2>การคำนวณความชัน</h2>
+        <div class="calc-grid">
+          <div class="calc-point"><span class="label">จุดที่ 1</span><span id="pt1Text">-</span></div>
+          <div class="calc-point"><span class="label">จุดที่ 2</span><span id="pt2Text">-</span></div>
+        </div>
+        <div class="calc-steps" id="calcSteps"></div>
+        <p class="calc-note">ลากจุดสีส้มเพื่อเลือกตำแหน่งใหม่ — จุดจะยึดกับพิกัดจำนวนเต็มที่ใกล้เส้นแนวโน้มที่สุดเสมอ เพื่อให้ ΔX และ ΔY เป็นจำนวนเต็ม</p>
+      </div>
+
+  }
+
+  function updateHandleFromPointer(evt){
+    var d = screenToData(evt);
+    var newX = Math.round(Math.max(axis.xMin, Math.min(axis.xMax, d.x)));
+    var other = draggingHandle==="a" ? slopePoints.x2 : slopePoints.x1;
+    if(newX===other){
+      newX = other + (other<axis.xMax ? 1 : -1);
+      newX = Math.max(axis.xMin, Math.min(axis.xMax, newX));
+      if(newX===other) return; // range too small to separate, ignore
+    }
+    var gp = nearestGridPoint(newX, lineSlope);
+    if(draggingHandle==="a"){ slopePoints.x1=gp.x; slopePoints.y1=gp.y; }
+    else { slopePoints.x2=gp.x; slopePoints.y2=gp.y; }
+    // keep x1 as the left one for consistent triangle drawing
+    if(slopePoints.x1>slopePoints.x2){
+      var t = {x1:slopePoints.x2,y1:slopePoints.y2,x2:slopePoints.x1,y2:slopePoints.y1};
+      slopePoints = t;
+      draggingHandle = (draggingHandle==="a") ? "b" : "a";
+    }
+    updateCalcPanel();
+    render();
+  }
+
+  // ---------- init ----------
+  fillAxisInputs();
+  renderTable();
+  updateButtons();
+  render();
+
+})();
+</script>
+</body>
+</html>
